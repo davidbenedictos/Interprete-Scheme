@@ -33,6 +33,7 @@ class SchemeEvalVisitor(SchemeVisitor):
             "body": body
         }
         
+        
 
     def visitLiteralLista(self, ctx):
         x = [self.visit(expr) for expr in ctx.expr()]
@@ -304,15 +305,22 @@ def main():
     visitor = SchemeEvalVisitor()
     results = visitor.visit(tree)
 
-    # Imprimir los resultados
-    # Imprimir los resultados
-    if results:
-        for result in results:
+    # Verificar si la función `main` está definida
+    if "main" in visitor.symbols:
+        main_func = visitor.symbols["main"]
+        if "params" in main_func and len(main_func["params"]) == 0:
+            # Llamar a `main` evaluando su cuerpo como una lista de expresiones
+            result = None
+            for expr in main_func["body"]:
+                result = visitor.visit(expr)  # Evalúa cada expresión en el cuerpo
             if result is not None:
                 if isinstance(result, bool):  # Verifica si es booleano
                     print("#t" if result else "#f")
                 else:
                     print(result)
+        else:
+            raise RuntimeError("Error: La función `main` debe estar definida sin parámetros.")
+
 
 
 
