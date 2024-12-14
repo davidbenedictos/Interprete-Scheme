@@ -88,6 +88,7 @@ class SchemeEvalVisitor(SchemeVisitor):
         if len(arg) == 0:
             return True
         return False
+    
 
 
         
@@ -106,7 +107,7 @@ class SchemeEvalVisitor(SchemeVisitor):
         args = [self.visit(arg) for arg in ctx.expr()]
 
         # Manejar operadores básicos
-        if func_name in ['+', '-', '*', '/', '<', '>', '<=', '>=', '=', '<>']:
+        if func_name in ['+', '-', '*', '/', '<', '>', '<=', '>=', '=', '<>', 'mod']:
             # Operadores básicos
             if func_name == '+':
                 return sum(args)
@@ -120,11 +121,22 @@ class SchemeEvalVisitor(SchemeVisitor):
                     result *= arg
                 return result
             elif func_name == '/':
+                if len(args) < 2:
+                    raise ValueError("El operador '/' requiere al menos dos argumentos")
                 result = args[0]
                 for arg in args[1:]:
                     if arg == 0:
                         raise ZeroDivisionError("División por cero")
                     result /= arg
+                return result
+            elif func_name == 'mod':
+                if len(args) < 2:
+                    raise ValueError("El operador 'mod' requiere al menos dos argumentos")
+                result = args[0]
+                for arg in args[1:]:
+                    if arg == 0:
+                        raise ZeroDivisionError("División por cero en 'mod'")
+                    result = result % arg
                 return result
             elif func_name == '<':
                 return all(args[i] < args[i + 1] for i in range(len(args) - 1))
@@ -197,11 +209,15 @@ class SchemeEvalVisitor(SchemeVisitor):
         return self.visit(ctx.expr(2))
         
     def visitCondicionalCond(self, ctx):
-        for clause in ctx.condClause():
-            cond = self.visit(clause.expr(0))
-            if cond:
+        for i, clause in enumerate(ctx.condClause()):
+            # Verificar si 'else' no es la última cláusula
+            if clause.expr(0).getText() == "else" and i < len(ctx.condClause()) - 1:
+                raise SyntaxError("'else' debe ser la última cláusula en un cond")
+
+            # Evaluar normalmente
+            if clause.expr(0).getText() == "else" or self.visit(clause.expr(0)):
                 return self.visit(clause.expr(1))
-        raise NameError(f"Ninguna clausula es verdadera")
+        raise RuntimeError("Ninguna condición en 'cond' fue verdadera")
     
     def visitOperacionLet(self, ctx):
         local_context = {} # creamos una tabla de simbolos
